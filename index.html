@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="ResQ Shield — Fake SOS Alert Detection System powered by ML anomaly scoring on Montgomery County 911 dataset patterns.">
+  <title>ResQ Shield — Fake SOS Detection</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- RED FLASH OVERLAY -->
+  <div id="screen-flash"></div>
+
+  <!-- ===== NAV BAR ===== -->
+  <nav id="main-nav">
+    <div class="nav-left">
+      <div class="logo">
+        <svg class="radar-icon" viewBox="0 0 24 24" width="22" height="22"><circle cx="12" cy="12" r="2" fill="#4D9FFF"/><path d="M12 2a10 10 0 0 1 10 10" stroke="#4D9FFF" stroke-width="2" fill="none" opacity=".3"><animate attributeName="opacity" values="0.3;1;0.3" dur="2s" repeatCount="indefinite"/></path><path d="M12 6a6 6 0 0 1 6 6" stroke="#4D9FFF" stroke-width="2" fill="none" opacity=".6"><animate attributeName="opacity" values="0.6;1;0.6" dur="2s" repeatCount="indefinite" begin="0.3s"/></path></svg>
+        <span class="logo-text">ResQ Shield</span>
+      </div>
+      <div class="view-toggle">
+        <button id="btn-user-view" class="toggle-btn active" onclick="switchView('user')">🛡️ User View</button>
+        <button id="btn-admin-view" class="toggle-btn" onclick="switchView('admin')">📊 Admin Dashboard</button>
+      </div>
+    </div>
+    <div class="nav-right" id="nav-right-user">
+      <label class="user-switch-label">Switch User</label>
+      <select id="user-select" onchange="selectUser(this.value)">
+        <option value="U001">U001 — Verified</option>
+        <option value="U002">U002 — Verified</option>
+        <option value="U003" selected>U003 — Unverified</option>
+        <option value="U004">U004 — Unverified</option>
+        <option value="U005">U005 — Verified</option>
+        <option value="U006">U006 — Unverified</option>
+      </select>
+    </div>
+    <div class="nav-right" id="nav-right-admin" style="display:none;">
+      <span class="live-dot"></span>
+      <span class="live-text">LIVE</span>
+      <span class="nav-clock" id="nav-clock-admin"></span>
+    </div>
+  </nav>
+
+  <!-- ===== USER VIEW ===== -->
+  <main id="view-user" class="view active-view">
+    <div class="user-center">
+      <p class="emergency-label">EMERGENCY ALERT SYSTEM</p>
+
+      <div class="sos-wrapper">
+        <div class="sos-ring ring1"></div>
+        <div class="sos-ring ring2"></div>
+        <div class="sos-ring ring3"></div>
+        <button id="sos-btn" class="sos-button" onclick="triggerSOS()">
+          <span class="sos-text" id="sos-text">SOS</span>
+        </button>
+      </div>
+
+      <div class="user-info-card" id="user-info-card">
+        <div class="info-row"><span class="info-label">User ID</span><span class="info-value mono" id="info-uid">U003</span></div>
+        <div class="info-row"><span class="info-label">Location</span><span class="info-value" id="info-loc">Block 7, Sector 4, Chennai</span></div>
+        <div class="info-row"><span class="info-label">Status</span><span class="info-value" id="info-status"><span class="status-dot unverified"></span> Unverified</span></div>
+        <div class="info-row"><span class="info-label">Time</span><span class="info-value mono" id="info-time"></span></div>
+      </div>
+
+      <div class="type-chips" id="type-chips">
+        <button class="chip" data-type="Fire" onclick="selectChip(this)">🔥 Fire</button>
+        <button class="chip" data-type="Accident" onclick="selectChip(this)">🚗 Accident</button>
+        <button class="chip" data-type="Medical" onclick="selectChip(this)">❤️ Medical</button>
+        <button class="chip" data-type="Other" onclick="selectChip(this)">🆘 Other</button>
+      </div>
+
+      <p class="bottom-note">Alert is automatically sent to the operations dashboard</p>
+      <p class="powered-note">Powered by ML anomaly detection · Montgomery County 911 Dataset</p>
+    </div>
+  </main>
+
+  <!-- ===== ADMIN VIEW ===== -->
+  <main id="view-admin" class="view">
+    <header class="admin-header">
+      <div class="admin-title">ResQ Shield — <span class="accent-blue">Operations Center</span></div>
+      <div class="admin-header-right">
+        <span class="live-dot"></span><span class="live-text">LIVE</span>
+        <span class="admin-clock" id="admin-clock"></span>
+      </div>
+    </header>
+
+    <!-- DATASET BANNER -->
+    <div class="dataset-banner" id="dataset-banner">
+      <div class="banner-item"><span class="banner-label">Dataset</span><span class="banner-value" id="ds-name">Loading 911.csv…</span></div>
+      <div class="banner-item"><span class="banner-label">Records</span><span class="banner-value mono" id="ds-records">—</span></div>
+      <div class="banner-item"><span class="banner-label">Categories</span><span class="banner-value" id="ds-cats">—</span></div>
+      <div class="banner-item"><span class="banner-label">Coverage</span><span class="banner-value mono" id="ds-range">—</span></div>
+    </div>
+
+    <!-- STATS ROW -->
+    <section class="stats-row">
+      <div class="stat-card" id="stat-total"><div class="stat-num" data-target="0">0</div><div class="stat-label">Total Alerts</div></div>
+      <div class="stat-card genuine-border" id="stat-genuine"><div class="stat-num" data-target="0">0</div><div class="stat-label">Genuine</div></div>
+      <div class="stat-card suspicious-border" id="stat-suspicious"><div class="stat-num" data-target="0">0</div><div class="stat-label">Suspicious</div></div>
+      <div class="stat-card fake-border" id="stat-fake"><div class="stat-num" data-target="0">0</div><div class="stat-label">Fake Blocked</div></div>
+    </section>
+
+    <!-- MINI CHART -->
+    <section class="chart-section">
+      <h3 class="section-title">Alerts per Last 6 Minutes</h3>
+      <div class="chart-container" id="mini-chart"></div>
+    </section>
+
+    <!-- ALERT FEED -->
+    <section class="feed-section">
+      <h3 class="section-title">Alert Feed <span class="feed-source">(sourced from 911.csv)</span></h3>
+      <div class="alert-feed" id="alert-feed">
+        <div class="feed-empty">⏳ Loading Montgomery County 911 dataset…</div>
+      </div>
+    </section>
+
+    <footer class="admin-footer">
+      Dataset: Montgomery County 911 Calls (663,522 records · 2015–2020) · ML Model: Isolation Forest + Rule Engine + Behaviour Scoring · Built with <span class="accent-blue">ResQ Shield</span>
+    </footer>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
